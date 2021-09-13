@@ -1,0 +1,81 @@
+local mod_name = minetest.get_current_modname()
+
+minetest.register_node(mod_name .. ":secheviande_raw", {
+	description = "Seche viande avec viande crue",
+	drawtype="mesh",
+	mesh="portique_viande.obj",
+	paramtype = "light",
+	paramtype2 = "facedir",
+	tiles = {"lowpoly_raw.png"},
+	inventory_image = "secheviande_inv.png",
+	wield_image = "secheviande_inv.png",
+	groups = {snappy=3},
+ sounds = default.node_sound_wood_defaults(),
+ selection_box = {
+		type = "fixed",
+		fixed = {-0.3, -0.5, -0.3, 0.3, 0.67, 0.3},
+	},
+ -- ajouter un compteur pour passer au modele suivant.
+})
+
+minetest.register_node(mod_name .. ":secheviande_dry", {
+	description = "Seche viande avec viande séchée",
+	drawtype="mesh",
+	mesh="portique_viande.obj",
+	paramtype = "light",
+	paramtype2 = "facedir",
+	tiles = {"lowpoly_dry.png"},
+	inventory_image = "secheviande_inv.png",
+	wield_image = "secheviande_inv.png",
+	groups = {snappy=3},
+ sounds = default.node_sound_wood_defaults(),
+ selection_box = {
+		type = "fixed",
+		fixed = {-0.3, -0.5, -0.3, 0.3, 0.67, 0.3},
+	},
+ 
+ on_rightclick = function(pos, node, clicker, itemstack)
+		node.name = mod_name .. ":secheviande_vide"
+		minetest.set_node(pos, node)
+	end
+})
+
+minetest.register_node(mod_name .. ":secheviande_vide", {
+	description = "Seche viande vide",
+	drawtype="mesh",
+	mesh="portique_viande.obj",
+	paramtype = "light",
+	paramtype2 = "facedir",
+	tiles = {"lowpoly_vide.png"},
+	inventory_image = "secheviande_vide_inv.png",
+	wield_image = "secheviande_vide_inv.png",
+	groups = {snappy=3},
+ sounds = default.node_sound_wood_defaults(),
+ selection_box = {
+		type = "fixed",
+		fixed = {-0.3, -0.5, -0.3, 0.3, 0.67, 0.3},
+	},
+ on_rightclick = function(pos, node, clicker, itemstack)
+
+-- A FAIRE : vérifier si l'item en main est compatible
+ local wielded_item = clicker:get_wielded_item():get_name()
+  node.name = mod_name .. ":secheviande_dry" -- ":secheviande_raw"
+  minetest.set_node(pos, node)
+  --si pas en créatif
+   if not minetest.setting_getbool("creative_mode") then
+    itemstack:take_item()
+   end
+  return itemstack
+ end
+
+})
+
+minetest.register_craft({
+	output =  mod_name .. ":secheviande_vide",
+	recipe = {
+		{"default:wood", "default:wood", "default:wood"},
+		{"default:wood", "default:iron_lump", "default:wood"},
+		{"default:wood", "", "default:wood"}
+	}
+})
+ 
