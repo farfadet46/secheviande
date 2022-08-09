@@ -3,16 +3,18 @@ local mod_name = minetest.get_current_modname()
 -- support for MT game translation.
 local S = default.get_translator
 
+local given_light = 75 -- recup valeur solaire (récup de l'heure ? + facile ? )
+--faire un mix avec heure du jour + luminance pour eviter de placer une torche a coté ?
+
 --
 -- Formspecs
 --
 
 function default.get_secheviande_active_formspec(fuel_percent, item_percent)
 	return "size[8,8.5]"..
-		"list[context;src;2.75,0.5;1,1;]"..
-		"list[context;fuel;2.75,2.5;1,1;]"..
-		"image[2.75,1.5;1,1;default_furnace_fire_bg.png^[lowpart:"..
-		(fuel_percent)..":default_furnace_fire_fg.png]"..
+		"list[context;src; 2.75,1.5;1,1;]"..
+		"image[2.75,0.5;1,1;sun_bg.png^[lowpart:"..(given_light)..":sun_fg.png]"..
+		"image[3.75,1.5;1,1;gui_furnace_arrow_bg.png^[transformR270]"..
 		"image[3.75,1.5;1,1;gui_furnace_arrow_bg.png^[lowpart:"..
 		(item_percent)..":gui_furnace_arrow_fg.png^[transformR270]"..
 		"list[context;dst;4.75,0.96;2,2;]"..
@@ -26,12 +28,10 @@ function default.get_secheviande_active_formspec(fuel_percent, item_percent)
 		"listring[current_player;main]"..
 		default.get_hotbar_bg(0, 4.25)
 end
-
 function default.get_secheviande_inactive_formspec()
 	return "size[8,8.5]"..
-		"list[context;src;2.75,0.5;1,1;]"..
-		"list[context;fuel;2.75,2.5;1,1;]"..
-		"image[2.75,1.5;1,1;default_furnace_fire_bg.png]"..
+		"list[context;src; 2.75,1.5;1,1;]"..
+		"image[2.75,0.5;1,1;sun_bg.png^[lowpart:"..(given_light)..":sun_fg.png]"..
 		"image[3.75,1.5;1,1;gui_furnace_arrow_bg.png^[transformR270]"..
 		"list[context;dst;4.75,0.96;2,2;]"..
 		"list[current_player;main;0,4.25;8,1;]"..
@@ -52,7 +52,8 @@ end
 local function can_dig(pos, player)
 	local meta = minetest.get_meta(pos);
 	local inv = meta:get_inventory()
-	return inv:is_empty("fuel") and inv:is_empty("dst") and inv:is_empty("src")
+ -- source et destination ne doivent pas etre vide
+	return inv:is_empty("dst") and inv:is_empty("src")
 end
 
 local function allow_metadata_inventory_put(pos, listname, index, stack, player)
@@ -104,12 +105,15 @@ local function furnace_node_timer(pos, elapsed)
 	--
 	-- Initialize metadata
 	--
+
 	local meta = minetest.get_meta(pos)
 	local fuel_time = meta:get_float("fuel_time") or 0
 	local src_time = meta:get_float("src_time") or 0
 	local fuel_totaltime = meta:get_float("fuel_totaltime") or 0
-
-	local inv = meta:get_inventory()
+  
+  fuel_totaltime = given_light
+	
+ local inv = meta:get_inventory()
 	local srclist, fuellist
 	local dst_full = false
 
@@ -120,11 +124,21 @@ local function furnace_node_timer(pos, elapsed)
 	local fuel
 
 	local update = true
+ 
+  -- *** FARFACODE ***
+if inv:is_empty("src") then
+swap_node(pos, mod_name..":secheviande_vide")
+else
+swap_node(pos, mod_name..":secheviande_dry")
+end
+
+
 	while elapsed > 0 and update do
 		update = false
 
 		srclist = inv:get_list("src")
 		fuellist = inv:get_list("fuel")
+
 
 		--
 		-- Cooking
@@ -263,9 +277,9 @@ local function furnace_node_timer(pos, elapsed)
 
 	local infotext
 	if active then
-		infotext = S("Furnace active")
+		infotext = S("Sun Dryer active")
 	else
-		infotext = S("Furnace inactive")
+		infotext = S("Sun Dryer inactive")
 	end
 	infotext = infotext .. "\n" .. S("(Item: @1; Fuel: @2)", item_state, fuel_state)
 
@@ -334,9 +348,11 @@ minetest.register_node(mod_name .. ":secheviande_vide", {
 		local meta = minetest.get_meta(pos)
 		local inv = meta:get_inventory()
 		inv:set_size('src', 1)
-	--	inv:set_size('fuel', 1)
+		inv:set_size('fuel', 2)
 		inv:set_size('dst', 4)
 		furnace_node_timer(pos, 0)
+  minetest.chat_send_player("singleplayer", minetest.get_timeofday()*24000)
+  --utilisable de 6000 à 9000 ?
 	end,
 
 	on_metadata_inventory_move = function(pos)
@@ -353,7 +369,6 @@ minetest.register_node(mod_name .. ":secheviande_vide", {
 	on_blast = function(pos)
 		local drops = {}
 		default.get_inventory_drops(pos, "src", drops)
-		--default.get_inventory_drops(pos, "fuel", drops)
 		default.get_inventory_drops(pos, "dst", drops)
 		drops[#drops+1] = mod_name .. "secheviande_vide"
 		minetest.remove_node(pos)
